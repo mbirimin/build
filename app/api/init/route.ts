@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
-import { initializeDatabase, saveProject } from "@/lib/db"
+import { initializeStorage, saveProject } from "@/lib/file-storage"
 
-// This endpoint initializes the database and creates default projects
+// This endpoint initializes the storage and creates default projects
 export async function GET() {
   try {
-    // Initialize database tables
-    await initializeDatabase()
+    // Initialize storage
+    await initializeStorage()
 
     // Create default projects if they don't exist
     await saveProject("build", "Build Day")
@@ -13,21 +13,14 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: "Database initialized successfully",
-      env: {
-        dbHost: process.env.DB_HOST ? "Set" : "Not set",
-        dbPort: process.env.DB_PORT ? "Set" : "Not set",
-        dbUser: process.env.DB_USER ? "Set" : "Not set",
-        dbPassword: process.env.DB_PASSWORD ? "Set" : "Not set",
-        dbName: process.env.DB_NAME ? "Set" : "Not set",
-      },
+      message: "Storage initialized successfully",
     })
   } catch (error: any) {
-    console.error("Database initialization failed:", error)
+    console.error("Storage initialization failed:", error)
     return NextResponse.json(
       {
         success: false,
-        message: "Database initialization failed",
+        message: "Storage initialization failed",
         error: error.message,
       },
       { status: 500 },

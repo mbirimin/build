@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getTasks, saveTasks, convertDbRowsToTasks } from "@/lib/db"
+import { getTasks, saveTasks } from "@/lib/file-storage"
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,9 +12,8 @@ export async function GET(request: NextRequest) {
 
     console.log(`Fetching tasks for project: ${projectType}`)
 
-    // Fetch tasks from DynamoDB
-    const dbRows = await getTasks(projectType)
-    const tasks = convertDbRowsToTasks(dbRows)
+    // Fetch tasks from file storage
+    const tasks = await getTasks(projectType)
 
     console.log(`Found ${tasks.length} tasks for ${projectType}`)
 
@@ -36,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`Saving ${tasks.length} tasks for project: ${projectType}`)
 
-    // Save tasks to DynamoDB
+    // Save tasks to file storage
     await saveTasks(tasks, projectType)
 
     console.log(`Successfully saved tasks for ${projectType}`)
