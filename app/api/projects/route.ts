@@ -1,13 +1,31 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getProjects, saveProject } from "@/lib/file-storage"
+import { getProjects, saveProject } from "@/lib/storage"
+import { logger } from "@/lib/logger"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
+    logger.debug("Fetching all projects")
+
     const projects = await getProjects()
-    return NextResponse.json({ projects })
+
+    logger.info(`Successfully fetched ${projects.length} projects`)
+
+    return NextResponse.json({
+      projects,
+      count: projects.length,
+      timestamp: new Date().toISOString(),
+    })
   } catch (error) {
-    console.error("Error fetching projects:", error)
-    return NextResponse.json({ error: "Failed to fetch projects" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    logger.error("Error fetching projects", { error: errorMessage })
+
+    return NextResponse.json(
+      {
+        error: "Failed to fetch projects",
+        details: errorMessage,
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -17,15 +35,31 @@ export async function POST(request: NextRequest) {
     const { projectType, title, date } = body
 
     if (!projectType) {
+      logger.warn("Projects POST request missing projectType")
       return NextResponse.json({ error: "Project type is required" }, { status: 400 })
     }
 
-    // Update project in file storage
+    logger.debug(`Updating project: ${projectType}`, { title, date })
+
     await saveProject(projectType, title, date)
 
-    return NextResponse.json({ success: true })
+    logger.info(`Successfully updated project: ${projectType}`)
+
+    return NextResponse.json({
+      success: true,
+      projectType,
+      timestamp: new Date().toISOString(),
+    })
   } catch (error) {
-    console.error("Error updating project:", error)
-    return NextResponse.json({ error: "Failed to update project" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    logger.error("Error updating project", { error: errorMessage })
+
+    return NextResponse.json(
+      {
+        error: "Failed to update project",
+        details: errorMessage,
+      },
+      { status: 500 },
+    )
   }
 }

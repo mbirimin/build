@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getTasks, saveTasks } from "@/lib/file-storage"
+import { getTasks, saveTasks } from "@/lib/storage"
+import { logger } from "@/lib/logger"
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,20 +8,33 @@ export async function GET(request: NextRequest) {
     const projectType = searchParams.get("projectType")
 
     if (!projectType) {
+      logger.warn("Tasks GET request missing projectType parameter")
       return NextResponse.json({ error: "Project type is required" }, { status: 400 })
     }
 
-    console.log(`Fetching tasks for project: ${projectType}`)
+    logger.debug(`Fetching tasks for project: ${projectType}`)
 
-    // Fetch tasks from file storage
     const tasks = await getTasks(projectType)
 
-    console.log(`Found ${tasks.length} tasks for ${projectType}`)
+    logger.info(`Successfully fetched ${tasks.length} tasks for ${projectType}`)
 
-    return NextResponse.json({ tasks })
+    return NextResponse.json({
+      tasks,
+      count: tasks.length,
+      projectType,
+      timestamp: new Date().toISOString(),
+    })
   } catch (error) {
-    console.error("Error fetching tasks:", error)
-    return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    logger.error("Error fetching tasks", { error: errorMessage })
+
+    return NextResponse.json(
+      {
+        error: "Failed to fetch tasks",
+        details: errorMessage,
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -30,19 +44,37 @@ export async function POST(request: NextRequest) {
     const { projectType, tasks } = body
 
     if (!projectType || !tasks) {
+      logger.warn("Tasks POST request missing required fields", { projectType: !!projectType, tasks: !!tasks })
       return NextResponse.json({ error: "Project type and tasks are required" }, { status: 400 })
     }
 
-    console.log(`Saving ${tasks.length} tasks for project: ${projectType}`)
+    if (!Array.isArray(tasks)) {
+      logger.warn("Tasks POST request - tasks is not an array")
+      return NextResponse.json({ error: "Tasks must be an array" }, { status: 400 })
+    }
 
-    // Save tasks to file storage
+    logger.debug(`Saving ${tasks.length} tasks for project: ${projectType}`)
+
     await saveTasks(tasks, projectType)
 
-    console.log(`Successfully saved tasks for ${projectType}`)
+    logger.info(`Successfully saved ${tasks.length} tasks for ${projectType}`)
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      count: tasks.length,
+      projectType,
+      timestamp: new Date().toISOString(),
+    })
   } catch (error) {
-    console.error("Error saving tasks:", error)
-    return NextResponse.json({ error: "Failed to save tasks" }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    logger.error("Error saving tasks", { error: errorMessage })
+
+    return NextResponse.json(
+      {
+        error: "Failed to save tasks",
+        details: errorMessage,
+      },
+      { status: 500 },
+    )
   }
 }
